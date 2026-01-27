@@ -11,7 +11,6 @@ import tempfile                              # 🔸 新增
 # 固定設定
 STAMP_SIZE = 100
 X_OFFSET = 360
-PASSWORD = "HQTReport"
 
 def make_stamp_pdf(stamp_img, size=STAMP_SIZE):
     """🔸 章圖轉成透明 PDF"""
@@ -64,11 +63,7 @@ def add_stamp(input_pdf, stamp_img, output_folder, y_offset):
         deflate=True,
         garbage=4,
         clean=True,
-        expand=False,
-        encryption=fitz.PDF_ENCRYPT_AES_256,
-        owner_pw=PASSWORD,
-        user_pw="",
-        permissions=fitz.PDF_PERM_PRINT + fitz.PDF_PERM_ACCESSIBILITY
+        expand=False
     )
     doc.close()
     stamp_doc.close()  # 🔸 關閉暫存章檔
