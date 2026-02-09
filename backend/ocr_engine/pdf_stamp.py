@@ -84,7 +84,7 @@ def add_stamp(input_pdf, stamp_img, output_folder, y_offset):
 
 def main():
     if len(sys.argv) < 5:  # ← 需要 5 個參數
-        print("0,0")  
+        print("RESULT:0,0", flush=True)
         sys.exit(1)
 
     input_folder = sys.argv[1]
@@ -95,7 +95,8 @@ def main():
     pdf_files = [f for f in os.listdir(input_folder) if f.lower().endswith(".pdf")]
 
     success, fail = 0, 0
-    for pdf in pdf_files:
+    total = len(pdf_files)
+    for index, pdf in enumerate(pdf_files, start=1):
         input_pdf = os.path.join(input_folder, pdf)
         try:
             ok = add_stamp(input_pdf, stamp_img, output_folder, y_offset)
@@ -106,8 +107,9 @@ def main():
         except Exception as e:
             print(f"處理 {pdf} 失敗：{e}", file=sys.stderr)
             fail += 1
+        print(f"PROGRESS:{index}/{total}", flush=True)
 
-    print(f"{success},{fail}")
+    print(f"RESULT:{success},{fail}", flush=True)
 
 if __name__ == "__main__":
     main()

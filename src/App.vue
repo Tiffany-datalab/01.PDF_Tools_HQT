@@ -22,26 +22,26 @@
       </div>
       <button class="btn-green" @click="runOcr">開始處理</button>
       <div class="progress-box">
-        <progress :value="progress" :max="total"></progress>
-        <span>{{ progress }}%</span>
+        <progress :value="processed" :max="total || 1"></progress>
+        <span>{{ processed }} / {{ total }} ({{ progress }}%)</span>
       </div>
     </div>
 
     <!-- 蓋章處理 -->
     <div v-if="mode === 'stamp'" class="form-box">
       <h2>2. 報告蓋章</h2>
-      <div>
+      <div class="offset-row">
         <label for="yOffset">Y 方向位移：</label>
         <input id="yOffset" v-model.number="yOffset" type="number" placeholder="-25" class="y-input"/>
-        <label for="yOffset" class="hint-label">(負值向上，正值向下)</label>
+        <label for="yOffset" class="hint-label"> (負值向上，正值向下)</label>
       </div>
       <div class="form-row">
-        <label>輸入資料夾：</label>
+        <label>來源資料夾：</label>
         <input v-model="inputFolder" type="text" />
         <button class="btn-blue" @click="chooseFolder('input')">選擇資料夾</button>
       </div>
       <div class="form-row">
-        <label>輸出資料夾：</label>
+        <label>目的資料夾：</label>
         <input v-model="outputFolder" type="text" />
         <button class="btn-blue" @click="chooseFolder('output')">選擇資料夾</button>
       </div>
@@ -52,8 +52,8 @@
       </div>
       <button class="btn-green" @click="runStamp">開始處理</button>
       <div class="progress-box">
-        <progress :value="progress" :max="total"></progress>
-        <span>{{ progress }}%</span>
+        <progress :value="processed" :max="total || 1"></progress>
+        <span>{{ processed }} / {{ total }} ({{ progress }}%)</span>
       </div>
     </div>
 
@@ -75,6 +75,7 @@ import { ref, onMounted } from "vue";
 const mode = ref(""); // ocr | stamp
 const progress = ref(0);
 const total = ref(0);
+const processed = ref(0);
 const isProcessing = ref(false);
 
 // 顯示結果 Modal
@@ -97,6 +98,38 @@ onMounted(() => {
       if (action === "ocr") mode.value = "ocr";
       else if (action === "stamp") mode.value = "stamp";
     });
+
+    window.electronAPI.onTaskStart((_event, payload) => {
+      const expectedJob = mode.value;
+      if (expectedJob !== "ocr" && expectedJob !== "stamp") return;
+      if (payload?.job !== expectedJob) return;
+      total.value = payload.total || 0;
+      processed.value = 0;
+      progress.value = 0;
+      isProcessing.value = true;
+    });
+
+    window.electronAPI.onTaskProgress((_event, payload) => {
+      const expectedJob = mode.value;
+      if (expectedJob !== "ocr" && expectedJob !== "stamp") return;
+      if (payload?.job !== expectedJob) return;
+      const totalCount = payload.total || total.value || 0;
+      const currentCount = payload.current || 0;
+      total.value = totalCount;
+      processed.value = currentCount;
+      progress.value = totalCount > 0 ? Math.floor((currentCount / totalCount) * 100) : 0;
+    });
+
+    window.electronAPI.onTaskDone((_event, payload) => {
+      const expectedJob = mode.value;
+      if (expectedJob !== "ocr" && expectedJob !== "stamp") return;
+      if (payload?.job !== expectedJob) return;
+      const totalCount = payload.total || total.value || 0;
+      total.value = totalCount;
+      processed.value = totalCount;
+      progress.value = 100;
+      isProcessing.value = false;
+    });
   }
 
   ocrFolder.value = localStorage.getItem("ocrFolder") || "";
@@ -113,12 +146,9 @@ async function runOcr() {
   }
 
   progress.value = 0;
-  total.value = 100;
+  total.value = 0;
+  processed.value = 0;
   isProcessing.value = true;
-
-  const interval = setInterval(() => {
-    if (progress.value < 95) progress.value += 5;
-  }, 200);
 
   try {
     const data = await window.electronAPI.invoke(
@@ -127,16 +157,9 @@ async function runOcr() {
       ocrFolder.value
     );
 
-    clearInterval(interval);
-    progress.value = 100;
-    setTimeout(() => {
-      isProcessing.value = false;
-    }, 500);
-
     result.value = { success: data.success || 0, fail: data.fail || 0 };
     showResult.value = true;
   } catch (err) {
-    clearInterval(interval);
     isProcessing.value = false;
     alert("OCR 執行失敗，請確認 ocr_rename.exe 是否存在");
     console.error(err);
@@ -155,12 +178,9 @@ async function runStamp() {
   }
 
   progress.value = 0;
-  total.value = 100;
+  total.value = 0;
+  processed.value = 0;
   isProcessing.value = true;
-
-  const interval = setInterval(() => {
-    if (progress.value < 95) progress.value += 5;
-  }, 200);
 
   try {
     const data = await window.electronAPI.invoke(
@@ -171,16 +191,9 @@ async function runStamp() {
       yOffset.value    // 傳入位移
     );
 
-    clearInterval(interval);
-    progress.value = 100;
-    setTimeout(() => {
-      isProcessing.value = false;
-    }, 500);
-
     result.value = { success: data.success || 0, fail: data.fail || 0 };
     showResult.value = true;
   } catch (err) {
-    clearInterval(interval);
     isProcessing.value = false;
     alert("蓋章處理失敗，請確認 pdf_stamp.exe 是否存在");
     console.error(err);
@@ -280,6 +293,9 @@ h2 {
   margin-bottom: 12px;
   white-space: nowrap;
 }
+.offset-row {
+  margin-bottom: 12px;
+}
 .form-row label {
   flex: 0 0 140px;
 }
@@ -289,6 +305,10 @@ h2 {
   padding: 6px 8px;
   border: 1px solid #ccc;
   border-radius: 4px;
+}
+.y-input {
+  width: 50px;
+  text-align: center;
 }
 
 .form-row select {

@@ -92,7 +92,7 @@ def process_pdfs(source, report_type):
     total = len(pdf_files)
     success, errors = [], []
 
-    for file in pdf_files:
+    for index, file in enumerate(pdf_files, start=1):
         original_path = os.path.join(source, file)
         report_id = extract_report_id(original_path, report_type)
         if report_id:
@@ -104,6 +104,7 @@ def process_pdfs(source, report_type):
                 errors.append(file)
         else:
             errors.append(file)
+        print(f"PROGRESS:{index}/{total}", flush=True)
 
     if errors:
         error_file = os.path.join(source, "OCR_Error_Files.txt")
@@ -116,7 +117,7 @@ def process_pdfs(source, report_type):
 
 def main():
     if len(sys.argv) < 3:
-        print("0,0")
+        print("RESULT:0,0", flush=True)
         sys.exit(1)
 
     report_type = sys.argv[1]
@@ -124,7 +125,7 @@ def main():
 
     result = process_pdfs(input_folder, report_type)
     print(f"DEBUG: {result}", file=sys.stderr)
-    print(f"{len(result['success'])},{len(result['errors'])}")
+    print(f"RESULT:{len(result['success'])},{len(result['errors'])}", flush=True)
 
 if __name__ == "__main__":
     main()
