@@ -58,14 +58,14 @@ function createWindow() {
       label: '功能選單',
       submenu: [
         {
-          label: '報告改名',
+          label: '1. 報告改名',
           click: () => {
             mainWindow.webContents.send('menu-action', 'ocr');
             mainWindow.setTitle("PDF小工具 - 報告改名");
           }
         },
         {
-          label: '蓋電子章',
+          label: '2. 蓋電子章',
           click: () => {
             mainWindow.webContents.send('menu-action', 'stamp');
             mainWindow.setTitle("PDF小工具 - 蓋電子章");

@@ -1,19 +1,22 @@
 <template>
   <div class="container">
-    <h1>PDF 小工具</h1>
+    <div class="header">
+      <img class="logo" src="/HQT.png" alt="HQT logo" />
+      <h1>PDF Tools</h1>
+    </div>
 
-    <!-- OCR 改名 -->
+    <!-- OCR 處理 -->
     <div v-if="mode === 'ocr'" class="form-box">
-      <h2>報告改名</h2>
+      <h2>1. 報告改名</h2>
       <div class="form-row">
         <label>報告類型：</label>
         <select v-model="reportType">
           <option>食品檢驗報告</option>
-          <option>環境檢驗報告</option>
+          <option>環境檢測報告</option>
         </select>
       </div>
       <div class="form-row">
-        <label>PDF 資料夾：</label>
+        <label>PDF 來源資料夾：</label>
         <input v-model="ocrFolder" type="text" />
         <button class="btn-blue" @click="chooseFolder('ocr')">選擇資料夾</button>
       </div>
@@ -24,28 +27,28 @@
       </div>
     </div>
 
-    <!-- 蓋電子章 -->
+    <!-- 蓋章處理 -->
     <div v-if="mode === 'stamp'" class="form-box">
-      <h2>蓋電子章</h2>
+      <h2>2. 報告蓋章</h2>
       <div>
-        <label for="yOffset">Y 偏移值：</label>
+        <label for="yOffset">Y 方向位移：</label>
         <input id="yOffset" v-model.number="yOffset" type="number" placeholder="-25" class="y-input"/>
-        <label for="yOffset" class="hint-label">(負越多，圖越上面)</label>
+        <label for="yOffset" class="hint-label">(負值向上，正值向下)</label>
       </div>
       <div class="form-row">
-        <label>原始報告資料夾：</label>
+        <label>輸入資料夾：</label>
         <input v-model="inputFolder" type="text" />
         <button class="btn-blue" @click="chooseFolder('input')">選擇資料夾</button>
       </div>
       <div class="form-row">
-        <label>簽章後存放位置：</label>
+        <label>輸出資料夾：</label>
         <input v-model="outputFolder" type="text" />
         <button class="btn-blue" @click="chooseFolder('output')">選擇資料夾</button>
       </div>
       <div class="form-row">
-        <label>電子章圖片：</label>
+        <label>印章圖片：</label>
         <input v-model="stampImg" type="text" />
-        <button class="btn-blue" @click="chooseFile">選擇圖片</button>
+        <button class="btn-blue" @click="chooseFile">選擇檔案</button>
       </div>
       <button class="btn-green" @click="runStamp">開始處理</button>
       <div class="progress-box">
@@ -53,12 +56,13 @@
         <span>{{ progress }}%</span>
       </div>
     </div>
-    <!-- ✅ 自訂彈窗 -->
+
+    <!-- 處理結果 -->
     <div v-if="showResult" class="modal-overlay">
       <div class="modal">
         <h3>處理結果</h3>
         <p><b>成功數量：</b><span>{{ result.success }} 筆</span></p>
-        <p class="error-text"><b>錯誤數量：</b>{{ result.fail }} 筆</p>
+        <p class="error-text"><b>失敗數量：</b>{{ result.fail }} 筆</p>
         <button class="btn-green" @click="showResult=false">關閉</button>
       </div>
     </div>
@@ -73,20 +77,20 @@ const progress = ref(0);
 const total = ref(0);
 const isProcessing = ref(false);
 
-// ✅ Modal 狀態
+// 顯示結果 Modal
 const showResult = ref(false);
 const result = ref({ success: 0, fail: 0 });
 
-// OCR 狀態
+// OCR 相關設定
 const reportType = ref("食品檢驗報告");
 const ocrFolder = ref("");
 
-// Stamp 狀態
+// 蓋章相關設定
 const inputFolder = ref("");
 const outputFolder = ref("");
 const stampImg = ref("");
 
-// 🚀 載入時從 localStorage 恢復
+// 初始化：從 localStorage 讀取
 onMounted(() => {
   if (window.electronAPI) {
     window.electronAPI.onMenuAction((_event, action) => {
@@ -101,10 +105,10 @@ onMounted(() => {
   stampImg.value = localStorage.getItem("stampImg") || "";
 });
 
-// OCR 改名
+// OCR 處理
 async function runOcr() {
   if (!ocrFolder.value) {
-    alert("請先選擇 PDF 資料夾");
+    alert("請先選擇 PDF 來源資料夾");
     return;
   }
 
@@ -134,19 +138,19 @@ async function runOcr() {
   } catch (err) {
     clearInterval(interval);
     isProcessing.value = false;
-    alert("OCR 執行失敗，請確認程式內有 ocr_rename.exe");
+    alert("OCR 執行失敗，請確認 ocr_rename.exe 是否存在");
     console.error(err);
   }
 }
 
-// Stamp 蓋章
+// 蓋章處理
 
 const yOffset = ref(-25)  // 預設 -25
 
-// Stamp 蓋章
+// 蓋章處理
 async function runStamp() {
   if (!inputFolder.value || !outputFolder.value || !stampImg.value) {
-    alert("請先選擇完整的輸入、輸出、電子章路徑");
+    alert("請先選擇輸入資料夾、輸出資料夾與印章圖片");
     return;
   }
 
@@ -164,7 +168,7 @@ async function runStamp() {
       inputFolder.value,
       outputFolder.value,
       stampImg.value,
-      yOffset.value    // ✅ 加上第四個參數
+      yOffset.value    // 傳入位移
     );
 
     clearInterval(interval);
@@ -178,7 +182,7 @@ async function runStamp() {
   } catch (err) {
     clearInterval(interval);
     isProcessing.value = false;
-    alert("蓋章執行失敗，請確認程式內有 pdf_stamp.exe");
+    alert("蓋章處理失敗，請確認 pdf_stamp.exe 是否存在");
     console.error(err);
   }
 }
@@ -213,32 +217,59 @@ async function chooseFile() {
 </script>
 
 <style>
-/* === 原有表單樣式 === */
+/* === 標題樣式 === */
 h1 {
   font-family: 'Roboto', sans-serif;
+  font-size: 45px;
   font-weight: 900;
-  color: #285372; /* 深藍 */
-  margin-bottom: 20px;
+  color: #0c497a; /* 標題主色 */
+  letter-spacing: 0.5px; /* 字距微調提升可讀性 */
+  margin: 20px 0;
 }
+.header {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.logo {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  width: 180px;      /* 840 / 2.5 = 336，整數比例縮放 */
+  height: auto;     /* 一定要 auto */
+  image-rendering: -webkit-optimize-contrast;
+}
+
 h2 {
   font-family: 'Roboto', sans-serif;
-  font-weight: bold;
-  font-size: 25px;
+  font-weight: 600;
+  font-size: 26px;
   text-align: center;
-  margin-bottom: 30px;
-  color: #f06565;      
+
+  margin-top: -6px;
+  margin-bottom: 18px;
+
+  color: #2f6fa3;
+
+  display: inline-block;          /* 讓底線只跟著文字寬度 */
+  padding-bottom: 6px;
+  border-bottom: 2px solid #cce4fa;
 }
+
 .container {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20px;
+  padding: 60px 10px 10px 10px;
 }
 .form-box {
   border: 1px solid #ccc;
   background: #f9f9f9;
-  padding: 20px;
-  margin-top: 20px;
+  padding: 30px;
+  margin-top: 10px;
   border-radius: 8px;
   width: 600px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
@@ -265,11 +296,11 @@ h2 {
   width: auto;
   height: 25px;
   border: #bbb4b4 solid 1px;
-  min-width: 200px;   /* ✅ 預留最小寬度，避免太小 */
+  min-width: 200px;   /* 避免選單過窄造成擠壓 */
 }
 
 .btn-blue {
-  background-color: #1b89ff;
+  background-color: #125993;
   color: #fff;
   border: none;
   padding: 6px 12px;
@@ -281,28 +312,28 @@ h2 {
 }
 .btn-blue:hover {
   background-color: #0056b3;
-  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.3); /* hover 時陰影更強 */
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.3); /* hover 陰影 */
 }
 .btn-green {
-  background-color: #28a745;
+  background-color: #00763E;
   color: #fff;
   border: none;
-  padding: 10px 20px;
+  padding: 6px 15px;
   border-radius: 4px;
   cursor: pointer;
   font-size: 16px;
   display: block;
-  margin: 15px auto 20px auto;
+  margin: 10px auto 10px auto;
   width: auto;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
   transition: all 0.2s ease;
 }
 .btn-green:hover {
   background-color: #1e7e34;
-  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.3); /* hover 時陰影更強 */
+  box-shadow: 0 6px 10px rgba(0, 0, 0, 0.3); /* hover 陰影 */
 }
 
-/* === 自訂 Modal 視窗 === */
+/* === 結果視窗 === */
 .modal-overlay {
   position: fixed;
   top: 0; left: 0;
@@ -335,11 +366,11 @@ h2 {
 progress {
   width: 100%;
   height: 20px;
-  -webkit-appearance: none; /* 移除預設樣式 (Chromium/Electron) */
+  -webkit-appearance: none; /* Chromium/Electron 相容 */
   appearance: none;
   border-radius: 10px;
-  overflow: hidden; /* 防止圓角被填滿色塊蓋掉 */
-  background-color: #eee; /* ✅ 未完成部分顏色 */
+  overflow: hidden; /* 超出範圍時隱藏 */
+  background-color: #eee; /* 進度條底色 */
 }
 
 progress::-webkit-progress-value {
@@ -359,25 +390,10 @@ progress::-webkit-progress-bar {
 
 .progress-box span {
   color: #f8304b;
-  display: block;        /* 讓數字換行 */
-  margin-top: 6px;       /* ✅ 和進度條之間距離 */
-  font-weight: bold;     /* ✅ 粗體 */
-  font-size: 20px;       /* 可依需要調大小 */
-}
-
-.y-input {
-  width: 35px;
-  height: 18px;
-  font-size: 14px;
-  padding: 2px 5px;
-  margin-bottom: 5px;   /* ✅ 這裡設定間距，原本是 5，可以改成 10 或更大 */
-  vertical-align: middle;
-}
-
-.hint-label {
-  margin-left: 8px;     /* 與輸入框分開 */
-  font-size: 12px;      /* 小字體 */
-  color: #666;          /* 灰色，當提示文字 */
+  display: block;        /* 讓百分比文字獨立一行 */
+  margin-top: 6px;       /* 與進度條保持間距 */
+  font-weight: bold;     /* 強調文字 */
+  font-size: 20px;       /* 放大字體 */
 }
 
 </style>
