@@ -38,8 +38,8 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "Tiffany-datalab",
-        "repo": "01.PDF_Tools_HQT"
+        "owner": "Company-CTC",
+        "repo": "company-pdf-tools-hqt"
       }
     ]
   },
